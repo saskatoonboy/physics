@@ -23,3 +23,15 @@ class Colour {
     }
 
 }
+
+function refAngle(angle) {
+    if (angle <= PI/2) {
+        return angle;
+    } else if (angle <= PI) {
+        return PI-angle;
+    } else if (angle <= PI/2*3) {
+        return angle-PI;
+    } else {
+        return TWO_PI-angle;
+    }
+}

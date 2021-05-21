@@ -23,36 +23,86 @@ class Entity {
 
     draw() {
         fill(this.colour.getRed(), this.colour.getGreen(), this.colour.getBlue());
-        rect(this.d.x*pixelForMeterRatio, this.d.y*pixelForMeterRatio, this.size*pixelForMeterRatio, this.size*pixelForMeterRatio);
+        ellipse(this.d.x*pixelForMeterRatio, this.d.y*pixelForMeterRatio, this.size*pixelForMeterRatio);
+    }
+
+    calcNormalF(netF, isV) {
+
+
+        let normalFDir = this.getNormalFDir();
+        if (normalFDir != undefined) {
+            let angle = normalFDir.heading()-PI/2;
+            let normalFMag = netF.mag() * -sin(refAngle(netF.heading()-angle));
+            
+            let normalF = p5.Vector.fromAngle(normalFDir.heading(), normalFMag);
+            
+            this.applyForce(normalF);
+        }
+        return normalFDir != undefined;
     }
 
     update() {
+
+
+        let netF = p5.Vector.mult(this.a, this.m);
+        // normal force
+        this.calcNormalF(netF, false);
+        this.calcNormalF(p5.Vector.mult(this.v, this.m), true)
+
+
+        if (entities[0].d.y > (height+5)/pixelForMeterRatio) {
+            noLoop();
+        }
+
+        if (settings.friction) {
+
+            this.friction();
+        }
         this.v.add(this.a);
         this.d.add(this.v);
-        this.a.mult(0);
+        this.a.mult(0); // <-- figure out order, cancels forces
         this.edges();
-        this.friction();
+    }
+
+    getNormalFDir() {
+        let d = p5.Vector.add(this.d, this.v);
+        d.add(this.a);
+        let x = d.x*pixelForMeterRatio;
+        let y = d.y*pixelForMeterRatio;
+        let size = this.size*pixelForMeterRatio/2;
+        
+        let dir;
+
+        if (y >= height - size) {
+            dir = p5.Vector.fromAngle(PI/2);
+        } else if (y <= size) {
+            dir = p5.Vector.fromAngle(PI/2*3);
+        }
+
+        //let hit = collideLineCircle(width-300, height, width, height-173.205, x, y, size);
+
+        // if (hit) {
+        //     if (dir == undefined) {
+        //         dir = p5.Vector.fromAngle(PI/6);
+        //     } else {
+        //         dir.add(p5.Vector.fromAngle(PI/6));
+        //     }
+        // }
+
+        
+        return dir;
+
     }
 
     edges() {
-
-        let y = this.d.y*pixelForMeterRatio;
         let x = this.d.x*pixelForMeterRatio;
-        let size = this.size*pixelForMeterRatio;
+        let size = this.size*pixelForMeterRatio/2;
 
-        if (y >= height - size) {
-            this.d.y = (height - size)/pixelForMeterRatio;
-            this.v.y *= -1
-        } else if (y <= 0) {
-            this.d.y = 0;
-            this.v.y *= -1;
-        }
-
-        if (x >= width - size) {
+        if (x > width - size) {
             this.d.x = (width - size)/pixelForMeterRatio;
             this.v.x *= -1
-        } else if (x <= 0) {
-            this.d.x = 0;
+        } else if (x < size) {
+            this.d.x = size/pixelForMeterRatio;
             this.v.x *= -1;
         }
 
@@ -72,6 +122,10 @@ class Entity {
             f.normalize();
             f.mult(-1);
             f.setMag(normalF*this.mu);
+
+            if (f.mag()*-1 >= this.v.mag()) {
+                // firction tp strong
+            }
 
             this.applyForce(f);
 
