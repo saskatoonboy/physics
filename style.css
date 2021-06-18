@@ -1,0 +1,30 @@
+.main-div {
+    display: inline-block;
+    vertical-align: top;
+}
+
+canvas  {
+
+    display:inline;
+
+}
+
+button {
+    display: block;
+}
+
+.text-div {
+    display: block;
+}
+
+p {
+    display:inline;
+}
+
+input {
+    display:inline;
+}
+
+main {
+    display:inline;
+}

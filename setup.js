@@ -37,10 +37,16 @@ function friction() {
 function simulate() {
 
   simulating = true;
-  canvas.show();
-  resizeCanvas(windowWidth, windowHeight);
   for (let setupItem of setupItems) {
     setupItem.hide();
   }
+
+}
+
+function createEntity() {
+
+    new Entity(500, new Colour(random(255), random(255), random(255)), createVector(10000, 10000), 10);
+    selectedObj = entities.length;
+    updateObject();
 
 }
