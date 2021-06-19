@@ -10,7 +10,7 @@ class Settings {
 
     constructor() {
         this.earthGravity = true;
-        this.friction = true;
+        this.friction = false;
         this.cAcceleration = false;
     }
 

@@ -57,6 +57,7 @@ function setup() {
   frictionButton.class("inline")
   frictionButton.parent(div);
   setupItems.push(frictionButton);
+  frictionButton.hide();
 
   rt = newTextInput(div, "MetersPerPixel", 150, 0);
 
