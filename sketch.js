@@ -21,13 +21,28 @@ let velocityInput;
 let velocityDegInput;
 let accelerationInput;
 let accelerationDegInput;
+let ratioInput;
+let sizeInput;
+let selectorCompare;
+let selectorType;
+let stopInput;
+let secs = 0;
+let secsDisplay;
+let cAccelerationButton;
 
 function setup() {
-  canvas = createCanvas(windowWidth-300, windowHeight-100);
+  canvas = createCanvas(windowWidth-300, windowHeight);
   canvas.class("inline");
 
   let div = createDiv();
   div.class("main-div")
+
+  // earth gravity button
+  cAccelerationButton = createButton("Constant Acceleration: No");
+  cAccelerationButton.mousePressed(cAcceleration);
+  cAccelerationButton.class("inline")
+  cAccelerationButton.parent(div);
+  setupItems.push(cAccelerationButton);
 
   // earth gravity button
   earthGravityButton = createButton("Earth Gravity: Yes");
@@ -43,6 +58,8 @@ function setup() {
   frictionButton.parent(div);
   setupItems.push(frictionButton);
 
+  rt = newTextInput(div, "MetersPerPixel", 150, 0);
+
   setupItems.push(createButton("Simulate").mousePressed(simulate).class("inline").parent(div))
 
   createEntityButton = createButton("Create Object");
@@ -51,76 +68,67 @@ function setup() {
   createEntityButton.parent(div);
   setupItems.push(createEntityButton);
 
-  let velocityDiv = createDiv();
-  velocityDiv.parent(div);
-  velocityDiv.class("text-div")
-  let velocityText = createP("Velocity: ");
-  velocityText.parent(velocityDiv);
+  vt = newTextInput(div, "Velocity", 120,  30);
+  at = newTextInput(div, "Acceleration", 120,  30);
+  dt = newTextInput(div, "Postion", 75,  75);
+  mt = newTextInput(div, "Mass", 150,  0);
+  st = newTextInput(div, "Size Factor", 150,  0);
+  velocityInput = vt[0];
+  velocityDegInput = vt[1];
+  accelerationInput = at[0];
+  accelerationDegInput = at[1];
+  positionXInput = dt[0];
+  positionYInput = dt[1];
+  massInput = mt[0];
+  ratioInput = rt[0];
+  sizeInput = st[0];
 
-  velocityInput = createInput();
-  velocityInput.size(120);
-  velocityInput.parent(velocityDiv);
-  velocityInput.changed(modifyObject);
+  let newDiv = createDiv();
+  newDiv.parent(div);
+  newDiv.class("text-div")
+  let text = createP("Stop When: ");
+  text.parent(newDiv);
 
-  velocityDegInput = createInput();
-  velocityDegInput.size(30);
-  velocityDegInput.parent(velocityDiv);
-  velocityDegInput.changed(modifyObject);
+  selectorType = createSelect();
+  selectorType.option("Position");
+  selectorType.option("Velocity");
+  selectorType.option("Acceleration");
+  selectorType.option("Seconds");
+  selectorType.parent(newDiv);
+  selectorType.changed(updateStop);
 
-  let accelerationDiv = createDiv();
-  accelerationDiv.parent(div);
-  accelerationDiv.class("text-div")
-  let accelerationText = createP("Acceleration: ");
-  accelerationText.parent(accelerationDiv);
+  selectorCompare = createSelect();
+  selectorCompare.option("Mag<");
+  selectorCompare.option("X<");
+  selectorCompare.option("Y<");
+  selectorCompare.option("Mag>");
+  selectorCompare.option("X>");
+  selectorCompare.option("Y>");
+  selectorCompare.option("Mag=");
+  selectorCompare.option("X=");
+  selectorCompare.option("Y=");
+  selectorCompare.option("Mag≠");
+  selectorCompare.option("X≠");
+  selectorCompare.option("Y≠");
+  selectorCompare.parent(newDiv);
+  selectorCompare.changed(updateStop);
 
-  accelerationInput = createInput();
-  accelerationInput.size(120);
-  accelerationInput.parent(accelerationDiv);
-  accelerationInput.changed(modifyObject);
+  selectorCompare2 = createSelect();
+  selectorCompare2.option("<");
+  selectorCompare2.option(">");
+  selectorCompare2.option("=");
+  selectorCompare2.option("≠");
+  selectorCompare2.parent(newDiv);
+  selectorCompare2.changed(updateStop);
+  selectorCompare2.hide();
+  
+  stopInput = createInput();
+  stopInput.size(75);
+  stopInput.parent(div);
+  stopInput.changed(updateStop);
 
-  accelerationDegInput = createInput();
-  accelerationDegInput.size(30);
-  accelerationDegInput.parent(accelerationDiv);
-  accelerationDegInput.changed(modifyObject);
-
-  let postitionDiv = createDiv();
-  postitionDiv.parent(div);
-  postitionDiv.class("text-div")
-  let postitionText = createP("Postition: ");
-  postitionText.parent(postitionDiv);
-
-  positionXInput = createInput();
-  positionXInput.size(75);
-  positionXInput.parent(postitionDiv);
-  positionXInput.changed(modifyObject);
-
-  positionYInput = createInput();
-  positionYInput.size(75);
-  positionYInput.parent(postitionDiv);
-  positionYInput.changed(modifyObject);
-
-  let massDiv = createDiv();
-  massDiv.parent(div);
-  massDiv.class("text-div")
-  let massText = createP("Mass: ");
-  massText.parent(massDiv);
-
-  massInput = createInput();
-  massInput.parent(massDiv);
-  massInput.changed(modifyObject);
-
-
-
-
-  // selector = createSelect();
-  // selector.option("obj 1");
-  // selector.option("obj 2");
-  // selector.option("obj 3");
-  // selector.option("obj 4");
-  // selector.option("obj 5");
-  // selector.selected("obj 1");
-  // selector.parent(div);
-  // setupItems.push(selector);
+  secsDisplay = createP("Seconds: 0s");
+  secsDisplay.parent(div);
 
 }
 
@@ -135,8 +143,11 @@ function draw() {
 
   if (simulating) {
 
+    secs++;
     //updates
-    for (let entity of entities) {
+    for (let i=0; i<entities.length; i++) {
+
+      let entity = entities[i];
 
       // earth gravity
       if (settings.earthGravity) {
@@ -147,18 +158,28 @@ function draw() {
       if (selectedObj > 0) {
         updateObject()
       }
+      if (i==stopObj-1) {
+        stopStats.d = entity.d.copy();
+        stopStats.v = entity.v.copy();
+        stopStats.a = entity.a.copy();
+      }
       entity.update();
     }
 
-    // wind
-    if (mouseIsPressed) {
+    if (stopInput.value() != "") {
 
-      for (let entity of entities) {
-    
-        entity.applyForce(createVector(6, 0));
-      }
-
+      stopTest();
     }
+
+    // wind
+    // if (mouseIsPressed) {
+
+    //   for (let entity of entities) {
+    
+    //     entity.applyForce(createVector(6, 0));
+    //   }
+
+    // }
   }
   
 
@@ -175,11 +196,12 @@ function updateObject() {
   accelerationDegInput.value(degrees(entity.a.heading())*-1);
   positionXInput.value(entity.d.x);
   positionYInput.value(entity.d.y*-1+height/pixelForMeterRatio);
+  ratioInput.value(pixelForMeterRatio);
+  secsDisplay.html("Seconds: "+secs+"s");
 
 }
 
 function mousePressed() {
-
   for (let i = 0; i < entities.length; i++) {
     let entity = entities[i];
     if (collidePointCircle(mouseX, mouseY, entity.d.x*pixelForMeterRatio, entity.d.y*pixelForMeterRatio, entity.size*pixelForMeterRatio)) {
@@ -193,21 +215,42 @@ function mousePressed() {
 }
 
 function windowResized() {
-  resizeCanvas(windowWidth-100, windowHeight-100);
+  resizeCanvas(windowWidth-300, windowHeight);
 }
 
 function modifyObject() {
 
   let entity = entities[selectedObj-1];
 
-  entity.m = parseInt(massInput.value());
+  pixelForMeterRatio = parseFloat(ratioInput.value());
+  entity.m = parseFloat(massInput.value());
   entity.v.x = 1;
-  entity.v.setMag(parseInt(velocityInput.value())*-1);
-  entity.v.setHeading(radians(parseInt(velocityDegInput.value()))*-1);
+  entity.v.setMag(parseFloat(velocityInput.value())*-1);
+  entity.v.setHeading(radians(parseFloat(velocityDegInput.value()))*-1);
   entity.a.x = 1;
-  entity.a.setMag(parseInt(velocityInput.value())*-1);
-  entity.a.setHeading(radians(parseInt(velocityDegInput.value()))*-1);
-  entity.d.x = parseInt(positionXInput.value());
-  entity.d.y = parseInt(positionYInput.value()*-1+height/pixelForMeterRatio);
+  entity.a.setMag(parseFloat(accelerationInput.value())*-1);
+  entity.a.setHeading(radians(parseFloat(accelerationDegInput.value()))*-1);
+  entity.d.x = parseFloat(positionXInput.value());
+  entity.d.y = parseFloat(positionYInput.value()*-1+height/pixelForMeterRatio);
+  entity.size = parseFloat(sizeInput.value())*entity.m;
 
+}
+
+function keyPressed() {
+  print(keyCode)
+  if (keyCode === 77) {
+    stopInput.value("69.4444444444444444444");
+    selectorType.value("Velocity");
+    selectorCompare.value("Mag=");
+    sizeInput.value("5000");
+    ratioInput.value("0.001");
+    positionYInput.value("700000");
+    positionXInput.value("40000");
+    accelerationInput.value("0.01");
+
+    modifyObject();
+    stopObj = selectedObj;
+    cAcceleration();
+  
+  }
 }

@@ -9,15 +9,17 @@ class Entity {
     // f = net force in newtons
     // size = size in pixels
 
-    constructor(size, colour, position, mass) {
+    constructor(colour, position, mass) {
         this.colour = colour;
         this.d = position;
         this.v = createVector(0, 0);
         this.a = createVector(0, 0);
         this.m = mass
         this.f = createVector(0, 0);
-        this.size = size*mass;
-        this.mu = 0.1;
+        this.size = parseFloat(sizeInput.value())*mass;
+        this.kmu = 0.1;
+        this.smu = 0.1;
+        this.mat = "wood";
         entities.push(this);
     }
 
@@ -37,6 +39,7 @@ class Entity {
             let normalF = p5.Vector.fromAngle(normalFDir.heading(), normalFMag);
             
             this.applyForce(normalF);
+            return(normalF);
         }
         return normalFDir != undefined;
     }
@@ -47,7 +50,7 @@ class Entity {
         let netF = p5.Vector.mult(this.a, this.m);
         // normal force
         this.calcNormalF(netF, false);
-        this.calcNormalF(p5.Vector.mult(this.v, this.m), true)
+        let normalF = this.calcNormalF(p5.Vector.mult(this.v, this.m), true)
 
 
         if (entities[0].d.y > (height+5)/pixelForMeterRatio) {
@@ -56,12 +59,15 @@ class Entity {
 
         if (settings.friction) {
 
-            this.friction();
+            this.friction(normalF);
         }
         this.v.add(this.a);
         this.d.add(this.v);
-        this.a.mult(0); // <-- figure out order, cancels forces
-        this.edges();
+        if (!settings.cAcceleration) {
+            this.a.mult(0); // <-- figure out order, cancels forces
+
+        }
+        //this.edges();
     }
 
     getNormalFDir() {
@@ -110,18 +116,24 @@ class Entity {
 
     applyForce(force) {
         let f = p5.Vector.div(force, this.m);
-        this.a.add(f);
+        if (!settings.cAcceleration) {
+            this.a.add(f);
+        }
     }
 
-    friction() {
+    friction(normalF) {
         let diff = height - (this.d.y+this.size)*pixelForMeterRatio;
+
         if (diff < 1) {
-            
+            let mu = this.kmu;
+            if (this.v.mag < 0.01) {
+                mu = this.smu;
+            }
+
             let f = this.v.copy();
-            let normalF = this.m;
             f.normalize();
             f.mult(-1);
-            f.setMag(normalF*this.mu);
+            f.setMag(normalF*mu);
 
             if (f.mag()*-1 >= this.v.mag()) {
                 // firction tp strong

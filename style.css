@@ -21,6 +21,10 @@ p {
     display:inline;
 }
 
+select {
+    display:inline;
+}
+
 input {
     display:inline;
 }
